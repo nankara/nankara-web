@@ -32,14 +32,28 @@ export default function ForgotPasswordPage() {
         <div className={`${styles.inner} ${styles.single}`}>
           <div className={styles.formCol}>
             <p className="section-label">Account</p>
-            <h1 className={styles.heading}>Forgot password</h1>
             {sent ? (
-              <p className={`${styles.banner} ${styles.ok}`}>
-                If that address has an account, we’ve sent a link to reset your
-                password. It expires in an hour.
-              </p>
+              <>
+                <h1 className={styles.heading}>Check your inbox</h1>
+                <p className={styles.sub}>
+                  If an account exists for <strong>{email.trim()}</strong>, we’ve
+                  sent a link to reset your password. It expires in an hour.
+                </p>
+                <p className={styles.sub}>
+                  Didn’t get it? Check your spam folder, or{' '}
+                  <button
+                    type="button"
+                    className={styles.linkButton}
+                    onClick={() => setSent(false)}
+                  >
+                    try another address
+                  </button>
+                  .
+                </p>
+              </>
             ) : (
               <>
+                <h1 className={styles.heading}>Forgot password</h1>
                 <p className={styles.sub}>
                   Enter your email and we’ll send you a reset link.
                 </p>

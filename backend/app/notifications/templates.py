@@ -1,5 +1,7 @@
 """Minimal branded HTML for account emails. Order-status emails come later."""
 
+import html
+
 _WRAP = """\
 <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
             max-width:520px;margin:0 auto;color:#0F0F0F">
@@ -41,3 +43,58 @@ def password_reset_email(*, first_name: str, link: str) -> tuple[str, str]:
         f"<p style='font-size:12px;color:#6B6B6B'>Or paste this link: {link}</p>"
     )
     return "Reset your Nankara password", _WRAP.format(body=body)
+
+
+# ── Internal notifications (to the admin) ────────────────────────────────────
+
+_INTERNAL_WRAP = """\
+<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+            max-width:560px;margin:0 auto;color:#0F0F0F">
+  <p style="font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+            color:#B8460A;margin-bottom:16px">NANKARA · {tag}</p>
+  {body}
+</div>"""
+
+
+def _rows(pairs: list[tuple[str, str]]) -> str:
+    cells = "".join(
+        f"<tr><td style='padding:6px 12px 6px 0;color:#6B6B6B;font-size:13px;"
+        f"vertical-align:top;white-space:nowrap'>{html.escape(k)}</td>"
+        f"<td style='padding:6px 0;font-size:14px;white-space:pre-wrap'>"
+        f"{html.escape(v)}</td></tr>"
+        for k, v in pairs
+        if v
+    )
+    return f"<table style='border-collapse:collapse;margin:16px 0'>{cells}</table>"
+
+
+def new_inbox_message(
+    *,
+    kind: str,
+    name: str,
+    email: str,
+    message: str,
+    subject: str = "",
+    phone: str = "",
+    country: str = "",
+) -> tuple[str, str]:
+    is_consult = kind == "consultation"
+    tag = "Consultation request" if is_consult else "Contact message"
+    pairs = [
+        ("Name", name),
+        ("Email", email),
+        ("Subject", "" if is_consult else subject),
+        ("Country", country),
+        ("WhatsApp", phone),
+        ("Message" if not is_consult else "Goal", message),
+    ]
+    body = (
+        f"<h1 style='font-weight:300;font-size:22px;margin:0 0 4px'>{tag}</h1>"
+        f"{_rows(pairs)}"
+        f"<p style='font-size:12px;color:#6B6B6B'>Reply directly to "
+        f"<a href='mailto:{html.escape(email)}'>{html.escape(email)}</a>, "
+        f"or open it in the admin inbox.</p>"
+    )
+    subj = f"New {tag.lower()} — {name}"
+    return subj, _INTERNAL_WRAP.format(tag=html.escape(tag), body=body)
+

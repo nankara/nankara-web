@@ -95,6 +95,7 @@ export default function OrderPlacedSummary({ order }) {
       <CreateAccountPrompt
         email={order.customer.email}
         firstName={order.customer.first_name}
+        lastName={order.customer.last_name}
       />
     </div>
   );

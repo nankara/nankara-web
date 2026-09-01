@@ -5,7 +5,15 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_admin
 from app.core.csrf import require_trusted_origin
 from app.core.database import get_db
-from app.models import Availability, Category, Order, OrderStatus, Product
+from app.models import (
+    Availability,
+    Category,
+    InboxMessage,
+    NewsletterSubscriber,
+    Order,
+    OrderStatus,
+    Product,
+)
 from app.schemas.admin import OverviewOut
 
 router = APIRouter(
@@ -40,6 +48,22 @@ def overview(db: Session = Depends(get_db)) -> OverviewOut:
         or 0
     )
     total_categories = db.scalar(select(func.count()).select_from(Category)) or 0
+    unhandled_messages = (
+        db.scalar(
+            select(func.count())
+            .select_from(InboxMessage)
+            .where(InboxMessage.is_handled.is_(False))
+        )
+        or 0
+    )
+    newsletter_subscribers = (
+        db.scalar(
+            select(func.count())
+            .select_from(NewsletterSubscriber)
+            .where(NewsletterSubscriber.is_active.is_(True))
+        )
+        or 0
+    )
 
     return OverviewOut(
         total_products=total_products,
@@ -51,4 +75,6 @@ def overview(db: Session = Depends(get_db)) -> OverviewOut:
         paid_orders=_count_orders(db, OrderStatus.PAID),
         in_production_orders=_count_orders(db, OrderStatus.IN_PRODUCTION),
         awaiting_shipment_orders=_count_orders(db, OrderStatus.READY),
+        unhandled_messages=unhandled_messages,
+        newsletter_subscribers=newsletter_subscribers,
     )

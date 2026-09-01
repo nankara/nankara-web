@@ -30,6 +30,8 @@ export default function AdminDashboardPage() {
       });
   }, [authReady, onAuthError]);
 
+  if (!authReady) return null;
+
   return (
     <>
       <AdminNav />
@@ -55,6 +57,12 @@ export default function AdminDashboardPage() {
               <Card number={data.published_products} label="Published" />
               <Card number={data.draft_products} label="Drafts" />
               <Card number={data.out_of_stock_products} label="Out of stock" />
+            </div>
+
+            <p className={styles.groupTitle}>Inbox</p>
+            <div className={styles.cards}>
+              <Card number={data.unhandled_messages} label="Unhandled messages" />
+              <Card number={data.newsletter_subscribers} label="Newsletter subscribers" />
             </div>
           </>
         )}

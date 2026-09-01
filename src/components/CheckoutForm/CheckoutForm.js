@@ -151,7 +151,7 @@ export default function CheckoutForm({
 
       <fieldset className={styles.fieldset}>
         <legend className={styles.legend}>Delivery</legend>
-        {savedAddresses.length > 1 && (
+        {savedAddresses.length >= 1 && (
           <Field id="checkout-saved-address" label="Use a saved address">
             <select
               id="checkout-saved-address"

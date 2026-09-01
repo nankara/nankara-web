@@ -46,6 +46,8 @@ export default function AdminOrdersPage() {
       });
   }, [authReady, status, onAuthError]);
 
+  if (!authReady) return null;
+
   return (
     <>
       <AdminNav />

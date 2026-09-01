@@ -39,6 +39,8 @@ export default function AdminOrderDetailPage({ params }) {
       });
   }, [authReady, id, onAuthError]);
 
+  if (!authReady) return null;
+
   const save = async () => {
     if (!choice) return;
     setSaveState('saving');

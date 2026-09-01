@@ -34,8 +34,8 @@ function VerifyContent() {
         {state === 'done' && (
           <>
             <h1 className={styles.heading}>Email confirmed</h1>
-            <p className={`${styles.banner} ${styles.ok}`}>
-              Thanks — your email is verified.
+            <p className={styles.sub}>
+              Thanks — your email address is verified. You’re all set.
             </p>
             <div className={styles.altLinks}>
               <Link href="/account">Go to your account</Link>

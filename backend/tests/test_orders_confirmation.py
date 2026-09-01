@@ -39,7 +39,7 @@ def test_confirmation_returns_safe_fields(client, seeded_zones, make_product):
 
     assert body["reference"] == placed["reference"]
     assert body["total"] == 120000 + 8000
-    assert set(body["customer"]) == {"first_name", "email"}
+    assert set(body["customer"]) == {"first_name", "last_name", "email"}
     assert set(body["delivery"]) == {"city", "state_region", "country"}
     # No leak of phone / street address / notes.
     assert "phone" not in str(body)

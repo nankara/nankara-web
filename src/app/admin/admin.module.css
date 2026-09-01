@@ -144,6 +144,33 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 0;
+  margin: 0.5rem 0 1.5rem;
+  border-bottom: 1px solid var(--color-gray-muted);
+}
+
+.tab,
+.tabActive {
+  padding: 0.5rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--color-gray);
+  cursor: pointer;
+}
+
+.tabActive {
+  color: var(--color-black);
+  border-bottom-color: var(--color-black);
 }
 
 .select {

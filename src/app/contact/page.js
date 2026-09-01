@@ -5,34 +5,33 @@ import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import ScrollReveal from '../../components/ScrollReveal/ScrollReveal';
 import CustomDropdown from '../../components/CustomDropdown/CustomDropdown';
+import { submitContactMessage } from '../../lib/api';
+import { buildContactPayload, contactErrors, hasErrors } from '../../lib/forms';
 import styles from './contact.module.css';
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: '', email: '', subject: 'General Inquiry', message: '' });
+  const [form, setForm] = useState({ name: '', email: '', subject: 'General Inquiry', message: '', website: '' });
   const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
 
   const subjects = ['General Inquiry', 'Styling Consultation', 'Business Partnership', 'Press & Media', 'Other'];
-
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim())   e.name    = 'Please enter your name.';
-    if (!form.email.includes('@')) e.email = 'Please enter a valid email.';
-    if (!form.message.trim()) e.message = 'Please include a message.';
-    return e;
-  };
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (errors[e.target.name]) setErrors(prev => ({ ...prev, [e.target.name]: '' }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const errs = contactErrors(form);
+    if (hasErrors(errs)) { setErrors(errs); return; }
     setStatus('loading');
-    setTimeout(() => setStatus('success'), 1500);
+    try {
+      await submitContactMessage(buildContactPayload(form));
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
   };
 
   return (
@@ -106,6 +105,22 @@ export default function ContactPage() {
                 </div>
               ) : (
                 <form className={styles.form} onSubmit={handleSubmit} noValidate id="contact-form">
+                  <input
+                    type="text"
+                    name="website"
+                    className={styles.honeypot}
+                    tabIndex={-1}
+                    autoComplete="off"
+                    aria-hidden="true"
+                    value={form.website}
+                    onChange={handleChange}
+                  />
+                  {status === 'error' && (
+                    <p className={styles.formError} role="alert">
+                      Something went wrong sending your message. Please try again, or email
+                      us directly at <a href="mailto:hello@nankara.com">hello@nankara.com</a>.
+                    </p>
+                  )}
                   <div className={styles.row}>
                     <div className={styles.field}>
                       <label className={styles.label} htmlFor="contact-name">Full Name</label>

@@ -34,6 +34,8 @@ export default function EditProductPage({ params }) {
       });
   }, [authReady, id, onAuthError]);
 
+  if (!authReady) return null;
+
   const handleSubmit = async (payload, images, imagesChanged) => {
     setSubmitting(true);
     setSaveState('idle');

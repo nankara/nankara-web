@@ -152,10 +152,9 @@ def customer_client(client, customer):
 def fake_resend(monkeypatch):
     """Record outbound emails instead of sending."""
     sent: list[dict] = []
-    monkeypatch.setattr(
-        "app.customers.emails.send_email",
-        lambda **kw: (sent.append(kw), True)[1],
-    )
+    recorder = lambda **kw: (sent.append(kw), True)[1]  # noqa: E731
+    monkeypatch.setattr("app.customers.emails.send_email", recorder)
+    monkeypatch.setattr("app.inbox.emails.send_email", recorder)
     return sent
 
 

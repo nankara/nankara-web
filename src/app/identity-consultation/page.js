@@ -4,38 +4,33 @@ import Image from 'next/image';
 import Navbar from '../../components/Navbar/Navbar';
 import Footer from '../../components/Footer/Footer';
 import ScrollReveal from '../../components/ScrollReveal/ScrollReveal';
+import { submitConsultationRequest } from '../../lib/api';
+import { buildConsultationPayload, consultationErrors, hasErrors } from '../../lib/forms';
 import styles from './identity-consultation.module.css';
 
 export default function IdentityConsultationPage() {
   const [stage, setStage] = useState('pitch'); // pitch -> price -> form -> success
-  const [form, setForm] = useState({ name: '', email: '', country: '', goal: '', whatsapp: '' });
+  const [form, setForm] = useState({ name: '', email: '', country: '', goal: '', whatsapp: '', website: '' });
   const [errors, setErrors] = useState({});
-  const [status, setStatus] = useState('idle');
-
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim()) e.name = 'Please enter your full name.';
-    if (!form.email.includes('@')) e.email = 'Please enter a valid email.';
-    if (!form.country.trim()) e.country = 'Please enter your country of residence.';
-    if (!form.goal.trim()) e.goal = 'Please share what you look forward to achieving.';
-    if (!form.whatsapp.trim()) e.whatsapp = 'Please enter a WhatsApp number.';
-    return e;
-  };
+  const [status, setStatus] = useState('idle'); // idle | loading | error (success uses `stage`)
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     if (errors[e.target.name]) setErrors((prev) => ({ ...prev, [e.target.name]: '' }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    const errs = consultationErrors(form);
+    if (hasErrors(errs)) { setErrors(errs); return; }
     setStatus('loading');
-    setTimeout(() => {
-      setStatus('success');
+    try {
+      await submitConsultationRequest(buildConsultationPayload(form));
+      setStatus('idle');
       setStage('success');
-    }, 1500);
+    } catch {
+      setStatus('error');
+    }
   };
 
   return (
@@ -98,6 +93,22 @@ export default function IdentityConsultationPage() {
             {/* Stage: Form */}
             {stage === 'form' && (
               <form className={styles.form} onSubmit={handleSubmit} noValidate id="consultation-form">
+                <input
+                  type="text"
+                  name="website"
+                  className={styles.honeypot}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  value={form.website}
+                  onChange={handleChange}
+                />
+                {status === 'error' && (
+                  <p className={styles.formError} role="alert">
+                    Something went wrong sending your request. Please try again, or email us
+                    at <a href="mailto:hello@nankara.com">hello@nankara.com</a>.
+                  </p>
+                )}
                 <div className={styles.row}>
                   <div className={styles.field}>
                     <label className={styles.label} htmlFor="consultation-name">Full Name</label>

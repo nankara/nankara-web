@@ -1,7 +1,17 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import Availability, Order, OrderItem, OrderStatus, Product
+from app.models import (
+    Availability,
+    Order,
+    OrderItem,
+    OrderStatus,
+    Product,
+    User,
+    UserAddress,
+)
 from app.orders.reference import unique_reference
 from app.schemas.order import (
     OrderConfirmationOut,
@@ -11,6 +21,8 @@ from app.schemas.order import (
     OrderItemOut,
 )
 from app.shipping.service import quote_shipping
+
+logger = logging.getLogger(__name__)
 
 
 def to_confirmation(order: Order) -> OrderConfirmationOut:
@@ -30,6 +42,7 @@ def to_confirmation(order: Order) -> OrderConfirmationOut:
         ),
         customer=OrderCustomerSummary(
             first_name=order.customer_first_name,
+            last_name=order.customer_last_name,
             email=order.customer_email,
         ),
     )
@@ -83,6 +96,72 @@ def _check_products(payload: OrderCreate, products: dict[int, Product]) -> None:
             )
     if problems:
         raise OrderValidationError(problems)
+
+
+def _addr_key(*parts: str) -> tuple:
+    """Normalised comparison key for an address (strip + casefold every part)."""
+    return tuple((p or "").strip().casefold() for p in parts)
+
+
+def _backfill_phone(user: User, payload: OrderCreate) -> None:
+    if not (user.phone or "").strip() and payload.contact.phone:
+        user.phone = payload.contact.phone
+
+
+def _save_address_for_user(db: Session, user: User, payload: OrderCreate) -> None:
+    """Add the checkout delivery address to the customer's address book unless an
+    identical one is already saved, and backfill an empty profile phone.
+
+    Best-effort: runs in a SAVEPOINT so any failure rolls back just this bit and
+    never blocks the order.
+    """
+    d = payload.delivery
+    try:
+        with db.begin_nested():
+            existing = list(
+                db.scalars(
+                    select(UserAddress).where(UserAddress.user_id == user.id)
+                )
+            )
+            candidate = _addr_key(
+                d.country_code, d.address_1, d.address_2, d.city,
+                d.state_region, d.postal_code,
+            )
+            already_saved = any(
+                _addr_key(
+                    a.country_code, a.address_1, a.address_2, a.city,
+                    a.state_region, a.postal_code,
+                )
+                == candidate
+                for a in existing
+            )
+            _backfill_phone(user, payload)
+            if already_saved:
+                return
+
+            base_label = (d.city or "").strip().title() or "Delivery address"
+            taken = {a.label for a in existing}
+            label, n = base_label, 2
+            while label in taken:
+                label, n = f"{base_label} ({n})", n + 1
+
+            db.add(
+                UserAddress(
+                    user_id=user.id,
+                    label=label[:60],
+                    is_default=not existing,
+                    country_code=d.country_code,
+                    country_name=d.country_name,
+                    address_1=d.address_1,
+                    address_2=d.address_2,
+                    city=d.city,
+                    state_region=d.state_region,
+                    postal_code=d.postal_code,
+                    recipient_phone=payload.contact.phone,
+                )
+            )
+    except Exception:  # noqa: BLE001 - never let address-saving break an order
+        logger.exception("Could not save checkout address for user %s", user.id)
 
 
 def create_order(db: Session, payload: OrderCreate, *, user=None) -> Order:
@@ -150,6 +229,9 @@ def create_order(db: Session, payload: OrderCreate, *, user=None) -> Order:
         items=order_items,
     )
     db.add(order)
+    if user is not None:
+        db.flush()
+        _save_address_for_user(db, user, payload)
     db.commit()
     db.refresh(order)
     return order

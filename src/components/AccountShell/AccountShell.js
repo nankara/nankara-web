@@ -33,6 +33,23 @@ export default function AccountShell({ children }) {
     router.replace('/');
   };
 
+  // Don't paint the account chrome (sidebar links included) until we know the
+  // visitor is signed in — middleware already redirects the cookieless case;
+  // this covers the brief probe window and an invalid cookie.
+  if (!isReady || !user) {
+    return (
+      <>
+        <Navbar />
+        <main className={styles.main}>
+          <div className={styles.inner}>
+            <p className={styles.muted}>Loading…</p>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <Navbar />
@@ -59,13 +76,7 @@ export default function AccountShell({ children }) {
               Sign out
             </button>
           </nav>
-          <div className={styles.content}>
-            {!isReady || !user ? (
-              <p className={styles.muted}>Loading…</p>
-            ) : (
-              children
-            )}
-          </div>
+          <div className={styles.content}>{children}</div>
         </div>
       </main>
       <Footer />

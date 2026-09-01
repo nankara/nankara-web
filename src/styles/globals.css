@@ -375,6 +375,12 @@ input, textarea, select {
   .section-pad { padding: var(--space-2xl) 0; }
 }
 
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 64px;
+  }
+}
+
 @media (max-width: 480px) {
   :root {
     --text-4xl: 2.25rem;

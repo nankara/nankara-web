@@ -63,5 +63,12 @@
   .links {
     order: 3;
     flex-basis: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+  }
+  .link {
+    white-space: nowrap;
   }
 }

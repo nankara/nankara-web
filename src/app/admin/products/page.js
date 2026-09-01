@@ -26,6 +26,8 @@ export default function AdminProductsPage() {
       });
   }, [authReady, onAuthError]);
 
+  if (!authReady) return null;
+
   return (
     <>
       <AdminNav />

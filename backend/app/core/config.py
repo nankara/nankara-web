@@ -84,6 +84,12 @@ class Settings(BaseSettings):
     def email_configured(self) -> bool:
         return bool(self.resend_api_key)
 
+    @property
+    def email_sender_is_testing(self) -> bool:
+        """`RESEND_FROM` still points at Resend's shared testing address, which
+        only delivers to the Resend account owner (any other recipient 403s)."""
+        return "resend.dev" in self.resend_from.lower()
+
     def production_config_errors(self) -> list[str]:
         """Fatal misconfigurations to refuse to start on in production."""
         if not self.is_production:

@@ -91,3 +91,16 @@ export function initializePaystack(reference) {
 export function verifyPayment(reference) {
   return apiPost('/payments/paystack/verify', { reference });
 }
+
+// Brand-page forms (spec §11) — stored in the admin inbox + emailed to the admin.
+export function submitContactMessage(payload) {
+  return apiPost('/inbox/contact', payload);
+}
+
+export function submitConsultationRequest(payload) {
+  return apiPost('/inbox/consultation', payload);
+}
+
+export function subscribeNewsletter(email, source = 'footer', website = '') {
+  return apiPost('/inbox/newsletter', { email, source, website });
+}

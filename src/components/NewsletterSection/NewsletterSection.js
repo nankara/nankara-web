@@ -1,23 +1,32 @@
 'use client';
 import { useState } from 'react';
+import { subscribeNewsletter } from '../../lib/api';
+import { newsletterEmailError } from '../../lib/forms';
 import styles from './NewsletterSection.module.css';
 
 export default function NewsletterSection() {
   const [email, setEmail] = useState('');
+  const [website, setWebsite] = useState(''); // honeypot
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
+    const invalid = newsletterEmailError(email);
+    if (invalid) {
+      setErrorMsg(invalid);
       setStatus('error');
       return;
     }
     setStatus('loading');
-    // Mailchimp integration placeholder
-    setTimeout(() => {
+    try {
+      await subscribeNewsletter(email.trim(), 'footer', website);
       setStatus('success');
       setEmail('');
-    }, 1200);
+    } catch {
+      setErrorMsg('Something went wrong. Please try again in a moment.');
+      setStatus('error');
+    }
   };
 
   return (
@@ -42,6 +51,16 @@ export default function NewsletterSection() {
             </div>
           ) : (
             <form className={styles.form} onSubmit={handleSubmit} noValidate id="newsletter-form">
+              <input
+                type="text"
+                name="website"
+                className={styles.honeypot}
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden="true"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+              />
               <div className={styles.inputWrap}>
                 <input
                   type="email"
@@ -64,7 +83,7 @@ export default function NewsletterSection() {
                 </button>
               </div>
               {status === 'error' && (
-                <p className={styles.errorText} role="alert">Please enter a valid email address.</p>
+                <p className={styles.errorText} role="alert">{errorMsg || 'Please enter a valid email address.'}</p>
               )}
               <p className={styles.privacy}>
                 By subscribing you agree to receive our curated communications. No spam, ever.

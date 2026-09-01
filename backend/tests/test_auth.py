@@ -163,3 +163,10 @@ def test_production_config_errors_flags_localhost_cors(monkeypatch):
 
 def test_dev_config_has_no_errors():
     assert settings.production_config_errors() == []
+
+
+def test_email_sender_is_testing_detects_resend_dev(monkeypatch):
+    monkeypatch.setattr(settings, "resend_from", "Nankara <onboarding@resend.dev>")
+    assert settings.email_sender_is_testing is True
+    monkeypatch.setattr(settings, "resend_from", "Nankara <no-reply@nankara.com>")
+    assert settings.email_sender_is_testing is False

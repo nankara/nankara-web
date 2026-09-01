@@ -11,7 +11,7 @@ root, the API is in `backend/`.
 | Service | What it's for | Notes |
 | --- | --- | --- |
 | **GitHub** — `nankara` org + `nankara-web` repo | Source of truth for both deploys | Grant the deploying user push access; connect the repo to Render and Vercel. |
-| **Render** | Backend web service **+** managed PostgreSQL | Free tier works to start (the web service cold-starts after 15 min idle — upgrade to a paid instance before launch). |
+| **Render** | Backend web service **+** managed PostgreSQL | Free tier works to start, with caveats: the web service cold-starts after 15 min idle, the **Shell tab and Pre-Deploy Command need a paid instance** (Starter+), and free Postgres expires after 30 days. Upgrade to paid before launch. |
 | **Vercel** | Frontend hosting | Hobby tier is fine for launch. Connect the same GitHub repo; root directory = repo root. |
 | **Cloudinary** | Product image storage/CDN (spec §7) | Free tier is plenty. You need the **Cloud name**, **API key**, **API secret** from the dashboard. |
 | **Paystack** | Payments (spec §13) | Requires **business verification** for **live** mode. You need the live **Secret key** and **Public key**, and you'll set a **webhook URL** (below). Test keys work immediately for staging. |
@@ -61,9 +61,9 @@ setup in §6 with `COOKIE_DOMAIN`.
 | Root Directory | `backend` |
 | Runtime | Python |
 | Build Command | `pip install -r requirements.txt` |
-| Pre-Deploy Command | `alembic upgrade head` |
+| Pre-Deploy Command | `alembic upgrade head` *(paid instances only — see below)* |
 | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips '*'` |
-| Instance type | Starter or better for launch (Free cold-starts) |
+| Instance type | Starter or better for launch (Free cold-starts, and has no Shell / Pre-Deploy) |
 
 - `--proxy-headers --forwarded-allow-ips '*'` so the app sees the real client IP
   behind Render's proxy (the rate limiter keys on it) and treats the connection
@@ -96,8 +96,8 @@ setup in §6 with `COOKIE_DOMAIN`.
 
 ### First-run: schema + seed
 
-`alembic upgrade head` runs on every deploy (pre-deploy hook). Then, once, from
-the Render **Shell**:
+**On a paid instance:** `alembic upgrade head` runs on every deploy (Pre-Deploy
+hook). Then, once, from the Render **Shell**:
 
 ```bash
 python -m app.cli create-admin --email you@nankara.com --password '<strong>'
@@ -105,6 +105,23 @@ python -m app.cli seed-categories
 python -m app.cli seed-shipping-zones     # DUMMY rates — replace in /admin/shipping before real orders
 # do NOT run seed-demo-products / seed-demo-orders in production
 ```
+
+**On the free tier** (no Shell, no Pre-Deploy) — run it locally against the
+production DB using the **External Database URL** (PG instance → Connections):
+
+```bash
+cd backend && source .venv/bin/activate
+export DATABASE_URL="postgresql+psycopg://USER:PASS@EXTERNAL_HOST/DB?sslmode=require"
+alembic upgrade head
+python -m app.cli create-admin --email you@nankara.com --password '<strong>'
+python -m app.cli seed-categories
+python -m app.cli seed-shipping-zones
+unset DATABASE_URL                         # stop pointing local dev at prod
+```
+
+Alternatively, fold migrations into the Build Command so they run on every free
+deploy: `pip install -r requirements.txt && alembic upgrade head` (the seeds /
+`create-admin` still need the local run above, once).
 
 Password reset for the admin, if ever needed:
 `python -m app.cli reset-admin-password --email you@nankara.com`.
@@ -150,16 +167,34 @@ Password reset for the admin, if ever needed:
 
 ### Resend
 
-1. Add and **verify the sending domain** (`nankara.com`) — Resend gives you SPF /
-   DKIM / (optional) DMARC DNS records to add at your registrar.
-2. Set `RESEND_FROM=Nankara <orders@nankara.com>` (or `no-reply@…`).
-3. Until the domain is verified, leave `RESEND_FROM` as `onboarding@resend.dev`
-   or account emails will bounce.
+**No customer email is delivered until you verify a sending domain.** With the
+default `RESEND_FROM=onboarding@resend.dev`, Resend only accepts mail addressed
+to *your own Resend-account email* — every other recipient gets a **403** (the
+backend logs `Resend send to … failed: HTTP 403 …` and moves on; the user-facing
+flow still succeeds). The backend also logs a startup warning while `RESEND_FROM`
+still contains `resend.dev` in production.
+
+1. Resend dashboard → **Domains** → add `nankara.com`, then add the SPF / DKIM /
+   (optional) DMARC DNS records it gives you at your registrar and wait for
+   "Verified".
+2. Set `RESEND_FROM=Nankara <no-reply@nankara.com>` (or `orders@…`) on the Render
+   backend and redeploy.
+3. Verify: register a test customer → confirmation email arrives; `/forgot-password`
+   → reset email arrives; Resend dashboard → **Emails** shows `delivered`.
 
 ### Cloudinary
 
 Just the three keys + folder in the backend env. The image manager in
 `/admin/products` uploads straight to `POST /api/v1/admin/media/upload`.
+
+### Brand-page forms
+
+The contact, consultation, and newsletter forms persist to the DB (visible in
+`/admin/inbox`) and — for contact/consultation — email a notification to the
+**oldest active admin's address**. That address is used deliberately because
+Resend delivers to its own account owner even without a verified sending domain,
+so notifications work the moment `RESEND_API_KEY` is set. Once the domain is
+verified (see Resend above), everything else also reaches customers.
 
 ---
 
@@ -199,10 +234,16 @@ whenever the domain changes (the startup guard rejects `localhost` in prod).
       approve them) — **before** taking real orders.
 - [ ] Checkout as a guest → Paystack (test mode) → success page → order in
       `/admin/orders`.
-- [ ] Register a customer → verification email arrives (real Resend key) →
-      `/account`, add an address, save measurements.
-- [ ] Guest order → "create an account" prompt on the success page → order shows
-      in `/account/orders`.
+- [ ] Resend sending domain **verified** and `RESEND_FROM` set to it (deploy log
+      has no "RESEND_FROM is …resend.dev" warning).
+- [ ] Register a customer → verification email actually arrives → `/account`, add
+      an address, save measurements.
+- [ ] Guest order → "create an account" prompt on the success page (first + last
+      name prefilled, editable) → order shows in `/account/orders` with the right
+      surname.
+- [ ] Signed-in checkout → the delivery address appears in `/account/addresses`.
+- [ ] Private window → `/admin` and `/account` redirect to their login pages with
+      **no flash** of the protected shell.
 - [ ] `CORS_ORIGINS` / `FRONTEND_ORIGIN` are the real `https://www.nankara.com`.
 - [ ] Switch Paystack to **live** keys; re-test one small real transaction.
 - [ ] Set up a DB backup schedule (Render paid plans do daily automatically;

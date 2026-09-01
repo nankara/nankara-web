@@ -33,8 +33,19 @@ def send_email(*, to: str, subject: str, html: str) -> bool:
             },
             timeout=_TIMEOUT,
         )
-        response.raise_for_status()
-        return True
     except httpx.HTTPError as exc:
         logger.warning("Resend send to %s failed: %s", to, exc)
         return False
+
+    if response.is_success:
+        return True
+
+    # Resend's response body names the exact reason (unverified domain, testing
+    # mode only sends to the account owner, bad key, …) — log it, don't raise.
+    logger.warning(
+        "Resend send to %s failed: HTTP %s — %s",
+        to,
+        response.status_code,
+        response.text.strip() or "(no body)",
+    )
+    return False

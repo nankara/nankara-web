@@ -23,3 +23,6 @@ class OverviewOut(BaseModel):
     paid_orders: int
     in_production_orders: int
     awaiting_shipment_orders: int
+    # Brand-page forms
+    unhandled_messages: int
+    newsletter_subscribers: int

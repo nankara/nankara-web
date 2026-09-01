@@ -17,6 +17,12 @@ PROTECTED = [
     ("get", "/api/v1/admin/orders"),
     ("get", "/api/v1/admin/orders/1"),
     ("patch", "/api/v1/admin/orders/1/status"),
+    ("get", "/api/v1/admin/customers"),
+    ("get", "/api/v1/admin/customers/1"),
+    ("get", "/api/v1/admin/inbox"),
+    ("get", "/api/v1/admin/inbox/1"),
+    ("patch", "/api/v1/admin/inbox/1"),
+    ("get", "/api/v1/admin/newsletter"),
     ("get", "/api/v1/admin/auth/me"),
 ]
 

@@ -171,6 +171,7 @@ export default function OrderSuccessPage({ params }) {
               <CreateAccountPrompt
                 email={order.customer.email}
                 firstName={order.customer.first_name}
+                lastName={order.customer.last_name}
               />
             </div>
           )}

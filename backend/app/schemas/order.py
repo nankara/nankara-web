@@ -69,7 +69,12 @@ class OrderDeliverySummary(BaseModel):
 
 
 class OrderCustomerSummary(BaseModel):
+    # The buyer's own name + email, shown back to them on the confirmation page
+    # (keyed on the unguessable reference). Kept minimal on purpose — no phone,
+    # no street address. `last_name` is here so the post-order "create an account"
+    # prompt can prefill it; don't drop it.
     first_name: str
+    last_name: str
     email: str
 
 

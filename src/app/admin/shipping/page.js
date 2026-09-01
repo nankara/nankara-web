@@ -86,6 +86,8 @@ export default function AdminShippingPage() {
     setZones((prev) => prev.map((z) => (z.id === updated.id ? updated : z)));
   };
 
+  if (!authReady) return null;
+
   return (
     <>
       <AdminNav />
