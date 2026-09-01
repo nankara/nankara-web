@@ -138,6 +138,7 @@ export default function Navbar() {
   );
 
   return (
+    <>
     <header className={navClass} id="navbar">
       <div className={styles.inner}>
         <Link href="/" className={styles.logo} aria-label="Nankara — home">
@@ -238,13 +239,17 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+    </header>
 
-      <div
-        id="mobile-menu"
-        ref={panelRef}
-        className={`${styles.mobileMenu} ${menuOpen ? styles.mobileMenuOpen : ''}`}
-        aria-hidden={!menuOpen}
-      >
+    {/* Rendered OUTSIDE <header>: the solid navbar uses backdrop-filter, which
+        would make it the containing block for this position:fixed panel and
+        collapse it to zero height. */}
+    <div
+      id="mobile-menu"
+      ref={panelRef}
+      className={`${styles.mobileMenu} ${menuOpen ? styles.mobileMenuOpen : ''}`}
+      aria-hidden={!menuOpen}
+    >
         <nav className={styles.mobileNav} aria-label="Mobile navigation">
           {PRIMARY_LINKS.map((l) => (
             <Link key={l.href} href={l.href} className={styles.mobileNavLink} id={l.id ? `mobile-${l.id}` : undefined}>
@@ -286,7 +291,7 @@ export default function Navbar() {
             Shop the Collection
           </Link>
         </nav>
-      </div>
-    </header>
+    </div>
+    </>
   );
 }
